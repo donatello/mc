@@ -408,6 +408,13 @@ func getLDAPConn(res *checkMessage) {
 	}
 }
 
+func ldapBind(dn, password string) error {
+	if password == "" {
+		return conn.UnauthenticatedBind(dn)
+	}
+	return conn.Bind(dn, password)
+}
+
 func getLookupBind(cm *checkMessage) {
 	dn := lookupBindDNCP.StringValue
 	password := lookupBindPasswordCP.StringValue
@@ -417,11 +424,7 @@ func getLookupBind(cm *checkMessage) {
 		cm.addError("LDAP Lookup Bind user invalid credentials", err)
 		return
 	}
-	if password == "" {
-		err = conn.UnauthenticatedBind(dn)
-	} else {
-		err = conn.Bind(dn, password)
-	}
+	err = ldapBind(dn, password)
 	if ldap.IsErrorWithCode(err, 49) {
 		cm.addError("Lookup Bind user invalid credentials", err)
 	} else if err != nil {
@@ -464,19 +467,33 @@ func checkTestUser(cm *checkMessage) {
 
 	searchResult, err := conn.Search(searchRequest)
 	if err != nil {
-		cm.addError("Could not verify test user credentials", err)
+		cm.addError("Could not find test user's DN with the given search filter", err)
 		return
 	}
 	if len(searchResult.Entries) == 0 {
 		err = fmt.Errorf("User DN for %s not found", testUserName)
 		cm.addError("User not found", err)
+		return
 	}
 	if len(searchResult.Entries) != 1 {
 		err = fmt.Errorf("Multiple DNs for %s found - please fix the search filter", testUserName)
 		cm.addError("Too many users found", err)
+		return
 	}
-	validatedTestUserDN = searchResult.Entries[0].DN
-	cm.addMessage(fmt.Sprintf("Found and validated credential for DN: `%s`", validatedTestUserDN))
+	userDN := searchResult.Entries[0].DN
+	cm.addMessage(fmt.Sprintf("Found DN: `%s`", userDN))
+
+	// Verify credential of user.
+	err = ldapBind(userDN, testUserPassword)
+	if ldap.IsErrorWithCode(err, 49) {
+		cm.addError(fmt.Sprintf("Invalid credential for DN `%s`", userDN), err)
+		return
+	} else if err != nil {
+		cm.addError("Unhandled user bind error", err)
+		return
+	}
+
+	validatedTestUserDN = userDN
 }
 
 func getGroups(conn *ldap.Conn, sreq *ldap.SearchRequest) ([]string, error) {
@@ -554,7 +571,7 @@ func displayCheckOutput(cms []checkMessage) error {
 }
 
 func displayVars() {
-	fmt.Println("Your validated MinIO LDAP configuration is:")
+	fmt.Println("Your validated MinIO LDAP configuration via environment variables is:")
 	envs := getConfigEnvs()
 	for _, v := range envs {
 		fmt.Printf("%s=%v\n", v.Name, v.Value)
