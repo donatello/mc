@@ -19,11 +19,12 @@ require (
 	github.com/minio/madmin-go v1.1.0
 	github.com/minio/md5-simd v1.1.1 // indirect
 	github.com/minio/minio-go/v7 v7.0.13-0.20210819151058-7877ed5b8110
-	github.com/minio/pkg v1.0.10
+	github.com/minio/pkg v1.0.11
 	github.com/minio/selfupdate v0.3.1
 	github.com/minio/sha256-simd v1.0.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/profile v1.3.0
 	github.com/pkg/xattr v0.4.1
 	github.com/posener/complete v1.2.3
@@ -44,3 +45,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	maze.io/x/duration v0.0.0-20160924141736-faac084b6075
 )
+
+replace github.com/minio/madmin-go => ../madmin-go
