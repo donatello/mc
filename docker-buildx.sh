@@ -22,6 +22,14 @@ sudo sysctl net.ipv6.conf.all.disable_ipv6=1
 
 release=$(git describe --abbrev=0 --tags)
 
+echo "Current commit is:"
+git log -n 1
+echo "Building container images for release ${release}"
+
+set -e
+read -p "Press [Enter] to continue or Ctrl+C to abort." -r
+set +e
+
 docker buildx build --push --no-cache \
 	--build-arg RELEASE="${release}" \
 	-t "minio/mc:latest" \
